@@ -65,9 +65,9 @@ predY <- realTest %>%
   predict(bestModel, newdata = .)
 
 ## ----Output_submission---------------------------------------------------
-submissionSet <- paste0(data_path, "sampleSubmission.csv") %>% 
+submissionSet <- paste0(data_path, "submission.csv") %>% 
   read_csv %>% 
   mutate(count = predY)
 
-write_csv(submissionSet, "output/submissionSet.csv")
+write_csv(submissionSet, "output/submission.csv")
 
