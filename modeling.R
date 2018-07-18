@@ -1,37 +1,13 @@
----
-title: modeling
-author: <a href = "https://lovetoken.github.io">lovetoken</a>
-date: "`r Sys.Date()`"
-output: 
-  html_document:
-    fig_height: 6
-    theme: yeti
-    toc: yes
-    toc_depth: 3
-    toc_float: yes
-    keep_md: no
----
-
-```{r env_ready, echo = F, warning = F, message = F}
+## ----env_ready, echo = F, warning = F, message = F-----------------------
 pacman::p_load(knitr, tidyverse, tidyr, ggplot2, data.table, caret, magrittr, lubridate, MLmetrics)
 opts_chunk$set(fig.path = "output/figure/", fig.align = "center", out.width = "90%", warning = F, message = F)
 
 data_path = "data/"
-```
 
-<br><br>
-
-## Data ready
-
-### Rawdata read
-
-```{r Rawdata_read}
+## ----Rawdata_read--------------------------------------------------------
 d <- paste0(data_path, "train.csv") %>% read_csv
-```
 
-### Preprocessing & Partition
-
-```{r Preprocessing_&_Partition}
+## ----Preprocessing_&_Partition-------------------------------------------
 pre_d <- d %>% 
   mutate(month = month(datetime),
          wday = wday(datetime, label = T),
@@ -43,24 +19,14 @@ pre_d <- d %>%
 index <- createDataPartition(pre_d$count, p = .8, list = F)
 train <- pre_d %>% extract(index, )
 test <- pre_d %>% extract(-index, )
-```
 
-<br><br>
-
-## Modeling
-
-```{r Modeling}
+## ----Modeling------------------------------------------------------------
 fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 3, allowParallel = TRUE)
 mlMethods <- c("glm", "simpls", "rpart", "pcr", "kknn", "glmnet", "lasso", "ridge")
 models <- mlMethods %>% 
   lapply(function(x) train(count ~ ., data = train, method = x, trControl = fitControl))
-```
 
-<br><br>
-
-## Evaluate
-
-```{r evaluate_function_setting}
+## ----evaluate_function_setting-------------------------------------------
 evaluate <- function(model, testset, class, ylim = c(1, testset %>% pull(class) %>% max)){
   stopifnot(is.character(class))
 
@@ -77,9 +43,8 @@ evaluate <- function(model, testset, class, ylim = c(1, testset %>% pull(class) 
                    "RMSE : ", RMSE(predict(model, newdata = testset) %>% unlist, pull(testset, class))))
   p
 }
-```
 
-```{r Evaluate}
+## ----Evaluate------------------------------------------------------------
 models %>% 
   lapply(evaluate, test, "count")
 
@@ -88,13 +53,8 @@ bestModel <- models %>%
   unlist %>% 
   order %>% extract(1) %>% 
   extract2(models, .)
-```
 
-<br><br>
-
-## Predict on real testset
-
-```{r Predict_on_real_testset}
+## ----Predict_on_real_testset---------------------------------------------
 realTest <- paste0(data_path, "test.csv") %>% read_csv 
 predY <- realTest %>% 
   mutate(month = month(datetime),
@@ -103,16 +63,11 @@ predY <- realTest %>%
   mutate_at(vars(month, wday, hour, season, holiday, workingday, weather), as.factor) %>% 
   select(month, wday, hour, everything()) %>% 
   predict(bestModel, newdata = .)
-```
 
-### Output submission
-
-```{r Output_submission}
+## ----Output_submission---------------------------------------------------
 submissionSet <- paste0(data_path, "sampleSubmission.csv") %>% 
   read_csv %>% 
   mutate(count = predY)
 
 write_csv(submissionSet, "output/submissionSet.csv")
-```
-
 
